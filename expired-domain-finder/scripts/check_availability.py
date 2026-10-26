@@ -76,13 +76,17 @@ def classify(info: dict) -> str:
     if "redemption" in s:
         return "redemption"
     exp = info.get("expiration")
+    expired = None
     if exp:
         try:
-            if datetime.fromisoformat(exp).date() < now_utc().date():
-                return "expired_grace"
+            expired = datetime.fromisoformat(exp).date() < now_utc().date()
         except ValueError:
             pass
-    if "server hold" in s or "client hold" in s:
+    if expired:
+        return "expired_grace"
+    # a hold on a domain whose expiry is still ahead is the owner's or registrar's problem,
+    # not a drop in progress: it is registered, and never a candidate
+    if ("server hold" in s or "client hold" in s) and expired is None:
         return "on_hold"
     return "registered"
 

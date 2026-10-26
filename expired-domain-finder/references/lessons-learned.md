@@ -71,6 +71,27 @@ spam network and only ~25 clean referring domains. With the fixes below it score
 - `check_history.py`: 10 samples by default.
 - `scripts/mcp_inject.py`: MCP mode — merge bulk, deep, index and WHOIS responses saved from the chat.
 
+### Later the same day: the free path, and two mistakes
+
+- **Wikipedia is the one free source of high-authority links.** `source_wikipedia.py` searches
+  articles about the niche that carry `{{Dead link}}` tags and reads their wikitext; 4,000
+  articles gave 2,263 dead-tagged domains, 97 hand-registrable and 5 in backorder, every one
+  still linked from an article. A plain crawl of 1,622 niche articles (`source_outlinks.py`)
+  gave 10,161 external domains and 97 buyable. `enrich_wikipedia.py` (list=exturlusage) counts
+  the linking articles exactly, for free. [FACT]
+- **Most Wikipedia-linked drops were hijacked at least once** (Chinese lottery, Japanese or
+  Korean spam eras in 2019–2024); read the last years of the archive before recommending. The
+  user's own `site:` checks on google.com and bing.com are the best free index check: no captcha
+  for a person. Ahrefs' free backlink checker needs a Cloudflare tick that Claude must not do.
+- **Mistake: a domain on `clientHold` with its expiry in 2027 was shown as a candidate.**
+  `classify()` returned `on_hold` → `watch` for any hold; now a hold with a future expiry is
+  `registered`, and reports list only `register` / `backorder` / `auction`. 209 rows across the
+  day's runs were reclassified.
+- **Mistake: a live site (pianomode.com) was shown in a results table** because DataForSEO's
+  WHOIS `registered = false` row was stale. Never show a WHOIS row the RDAP check contradicts.
+- **OpenSEO's SERP tool spent ~410 credits on 30 `site:` checks and one backlinks overview**,
+  far more than its description suggests; check `whoami` before and after a batch.
+
 ### Research digest: sourcing and buying
 
 - **Drop lifecycle [FACT]:** expiry → `autoRenewPeriod` (registrar grace, up to 45 days; large

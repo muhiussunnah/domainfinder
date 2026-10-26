@@ -136,7 +136,10 @@ def main(argv=None):
     run = Path(a.run)
     niche = load_niche(run)
     table = load_table(run)
-    rows = [r for r in table.values() if r.get("tier") and r["tier"] != "X"]
+    # only domains someone can actually buy make the shortlist; "watch"/"check"/"registered"
+    # rows stay in domains.csv for re-checks but are never recommended
+    rows = [r for r in table.values() if r.get("tier") and r["tier"] != "X"
+            and r.get("acquire") in ("register", "backorder", "auction")]
     rows.sort(key=lambda r: -float(r.get("score") or 0))
     top = rows[: a.top]
     rejected = Counter()
