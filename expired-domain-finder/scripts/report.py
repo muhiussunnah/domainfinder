@@ -11,7 +11,7 @@ from pathlib import Path
 from common import load_niche, load_table, log, now_utc, num, setup_console
 
 ACTION = {
-    "register": "Not registered: hand-register it now at any registrar (~$10).",
+    "register": "Not registered per RDAP: confirm at a registrar search page (registry-reserved names also look free), then hand-register (~$10).",
     "backorder": "Pending delete / redemption: place a backorder (DropCatch, SnapNames, NameJet) before it drops.",
     "auction": "Past expiry, held by the registrar: look for it in GoDaddy / NameJet / Dynadot auctions.",
     "watch": "On hold: watch the status and check again in a few days.",

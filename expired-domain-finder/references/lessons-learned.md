@@ -91,6 +91,22 @@ spam network and only ~25 clean referring domains. With the fixes below it score
   WHOIS `registered = false` row was stale. Never show a WHOIS row the RDAP check contradicts.
 - **OpenSEO's SERP tool spent ~410 credits on 30 `site:` checks and one backlinks overview**,
   far more than its description suggests; check `whoami` before and after a batch.
+- **Wikipedia links are `nofollow`** (since 2007): they prove editorial legitimacy and send
+  visitors, but they do not raise DA/DR. parrotcichlids.com has a Wikipedia link, 16 years of
+  history and DA 4. Say so before anyone expects "authority" from a Wikipedia link.
+- **A registry-reserved name looks available to RDAP and DNS.** postimg.org (DA 92, 99k referring
+  domains) returned RDAP 404 and NXDOMAIN, yet Namecheap shows "Taken / Make offer" — PIR holds
+  it. Rule: before recommending any `register` candidate with unusual authority, confirm at a
+  registrar search page; treat RDAP 404 as "probably free", never as proof.
+- **Ubersuggest's MCP `backlinks_overview` gives DA, backlinks and referring domains per call
+  (1 report of 300/day)** and is the cheapest DA screen available, but it blocks bursts: 20
+  parallel calls worked, the next 25 all returned CloudFront 403. Send 5 at a time with pauses.
+- **The Wikipedia dead-link source finds real authority in the backorder tier:**
+  jewishbusinessnews.com (DA 61, 9,124 referring domains, news site live until 2025, drop
+  ~2026-11-07), sethroberts.net (DA 49), forest-monitor.com (DA 36), historyofquilts.com
+  (DA 31, hijacked). Hand-registrable finds top out around DA 24 (archery-den.com). The
+  authority is in the drops that catchers fight over, so the backorder path is where the
+  money-free hunt ends and a $25–70 backorder begins.
 
 ### Research digest: sourcing and buying
 

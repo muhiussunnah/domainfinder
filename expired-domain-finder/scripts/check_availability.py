@@ -104,6 +104,8 @@ def rdap_check(domain: str, bases: dict[str, str]) -> dict:
     status, body, _ = http_request(url, headers={"Accept": "application/rdap+json"}, timeout=20,
                                    retries=3, min_interval=0.15)
     if status == 404:
+        # registry-reserved names (e.g. postimg.org, held by PIR) also answer 404 and NXDOMAIN;
+        # the report tells the user to confirm at a registrar before paying
         return {"rdap_status": "available"}
     if status == 200:
         try:
