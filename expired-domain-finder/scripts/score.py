@@ -65,9 +65,14 @@ def age_years(r: dict) -> float | None:
     return (now_utc().year - wf) if wf else None
 
 
+NETWORK_RMD = 1500  # raw referring-domain counts this high on a dropped domain are a link-selling network
+
+
 def authority(r: dict) -> float:
     rank = num(r, "bl_rank", num(r, "dfs_rank"))
     rmd = best_rmd(r)
+    if rmd is not None and rmd >= NETWORK_RMD and num(r, "bl_clean_rmd") is None:
+        rmd = 50.0  # unknown real profile: credit it like a modest one, not like 2,700 real links
     pos = num(r, "cc_hc_pos")
     etv = num(r, "hist_peak_etv", num(r, "whois_etv"))
     age = age_years(r)
@@ -246,6 +251,9 @@ def warnings(r: dict) -> list[str]:
     rd, ips = num(r, "bl_rd"), num(r, "bl_ips")
     if rd and ips is not None and rd >= 20 and ips / rd < 0.5:
         w.append("many referring domains share IPs (PBN footprint)")
+    raw = max([v for v in (num(r, "bl_rmd"), num(r, "dfs_rmd"), num(r, "whois_rmd")) if v is not None], default=None)
+    if raw is not None and raw >= NETWORK_RMD and num(r, "bl_clean_rmd") is None:
+        w.append(f"{raw:.0f} raw referring domains look like a link-selling network; clean count not checked")
     ls, recent = num(r, "anc_linkspam_ratio", 0) or 0, num(r, "rd_recent_share", 0) or 0
     if ls > 0.3 or recent > 0.5:
         w.append(f"link-spam network hit ({ls:.0%} link-selling anchors, {recent:.0%} of top referring domains "
