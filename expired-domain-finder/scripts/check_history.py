@@ -149,7 +149,9 @@ def main(argv=None):
     ap.add_argument("--run", required=True)
     ap.add_argument("--top", type=int, default=60, help="check the best N acquirable candidates")
     ap.add_argument("--domains", default="", help="comma-separated domains to check instead of the top N")
-    ap.add_argument("--samples", type=int, default=6, help="homepage captures to read per domain")
+    ap.add_argument("--samples", type=int, default=10,
+                    help="homepage captures to read per domain (one per year up to this; a hijacked "
+                         "year is easy to miss when fewer years are sampled)")
     ap.add_argument("--workers", type=int, default=3, help="keep low; the Wayback Machine rate-limits")
     ap.add_argument("--force", action="store_true")
     a = ap.parse_args(argv)

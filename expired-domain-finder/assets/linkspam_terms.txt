@@ -1,0 +1,23 @@
+# Anchor phrases used by link-selling networks that blast every freshly dropped domain
+# with thousands of links from .store/.shop/.site/.online/.space sites. These links say
+# nothing about the domain's own history: they are counted separately (anc_linkspam_ratio,
+# a warning), excluded from the clean referring-domain count, and never used to reject.
+# Matched as whole words, case-insensitive.
+backlinks
+backlink
+premium backlinks
+dofollow backlinks
+high quality backlinks
+buy backlinks
+backlinks online
+link building
+link building service
+seo link building
+seo links
+seo authority
+pbn
+pbn network
+rank first page
+guest post service
+domain authority
+da 50

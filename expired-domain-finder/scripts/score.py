@@ -1,6 +1,6 @@
 """Score every candidate 0-100 and apply hard rejects.
 
-score = 30% authority + 25% cleanliness + 20% niche relevance + 15% Bing index + 10% buyability
+score = 30% authority + 25% cleanliness + 20% niche relevance + 15% search index (Google + Bing) + 10% buyability
 Each part only uses the data that exists so far, so the same scorer ranks the
 cheap first pass (which domains deserve paid checks) and the final shortlist.
 """
@@ -15,7 +15,11 @@ from pathlib import Path
 from common import (label_of, load_asset_terms, load_niche, load_table, log, name_match, now_utc,
                     num, save_table, setup_console, suffix_of)
 
-DEFAULTS = {"min_rmd": 5, "max_spam": 30, "max_bl_spam": 40, "max_anchor_spam": 0.10,
+# max_spam: the domain's own (target) spam score, DataForSEO band "low" is 0-30.
+# max_bl_spam: the backlink-based spam score (bulk_spam_score and summary backlinks_spam_score are
+# this metric); 31-60 is "medium" and usually means a link-selling network hit a fresh drop, so only
+# "high" (>60) rejects before the deep pass; after it the clean referring-domain count decides.
+DEFAULTS = {"min_rmd": 5, "max_spam": 30, "max_bl_spam": 60, "max_anchor_spam": 0.10,
             "max_anchor_foreign": 0.25, "keep_registered": False}
 BUY = {"register": 100, "backorder": 65, "auction": 45, "watch": 25, "check": 30, "registered": 0}
 
@@ -40,6 +44,10 @@ def wavg(parts: list[tuple[float | None, float]]) -> float | None:
 
 
 def best_rmd(r: dict) -> float | None:
+    """Referring main domains, preferring the clean count (link-selling networks removed)."""
+    clean = num(r, "bl_clean_rmd")
+    if clean is not None:
+        return clean
     vals = [num(r, k) for k in ("bl_rmd", "dfs_rmd", "whois_rmd")]
     vals = [v for v in vals if v is not None]
     return max(vals) if vals else None
@@ -73,15 +81,45 @@ def authority(r: dict) -> float:
     return round(v or 0, 1)
 
 
+def target_spam(r: dict) -> float | None:
+    return num(r, "bl_target_spam")
+
+
+def link_spam(r: dict) -> float | None:
+    vals = [v for v in (num(r, "dfs_spam"), num(r, "bl_backlinks_spam")) if v is not None]
+    return max(vals) if vals else None
+
+
 def cleanliness(r: dict) -> float:
     signals = 0
     s = 100.0
-    spam = max([v for v in (num(r, "dfs_spam"), num(r, "bl_target_spam")) if v is not None], default=None)
+    spam = target_spam(r)
     if spam is not None:
         signals += 1
         s -= spam
-    for key, mult in (("bl_backlinks_spam", 0.5), ("anc_spam_ratio", 300), ("anc_foreign_ratio", 150),
-                      ("bl_spam_tld_share", 100), ("rd_spammy_share", 80)):
+    # Link-selling networks hit every fresh drop with thousands of links, so the raw backlink
+    # metrics describe the network, not the domain. Once the clean count exists, charge the
+    # network itself (up to 25 points) and weigh the raw metrics by the share that is real.
+    clean = num(r, "bl_clean_rmd")
+    raw = max([v for v in (num(r, "bl_rmd"), num(r, "dfs_rmd")) if v is not None], default=None)
+    scale = 1.0
+    if clean is not None and raw:
+        net = min(1.0, max(0.0, 1 - clean / raw))
+        signals += 1
+        s -= 25 * net
+        scale = 1 - net
+    ls = link_spam(r)
+    if ls is not None:
+        signals += 1
+        s -= ls * 0.5 * scale
+    for key, mult in (("bl_spam_tld_share", 40), ("rd_spammy_share", 60), ("anc_linkspam_ratio", 15),
+                      ("rd_recent_share", 20)):
+        v = num(r, key)
+        if v is not None:
+            signals += 1
+            s -= v * mult * scale
+    # real spam (casino, pharma, adult anchors; foreign-script anchors) is never discounted
+    for key, mult in (("anc_spam_ratio", 300), ("anc_foreign_ratio", 150)):
         v = num(r, key)
         if v is not None:
             signals += 1
@@ -109,13 +147,35 @@ def relevance(r: dict, niche: dict) -> float:
     return round(clamp(s), 1)
 
 
+ENGINES = ("google", "bing")
+
+
+def index_summary(r: dict) -> str:
+    """'both', 'google only', 'bing only', 'google', 'bing', 'none' or '' when unchecked."""
+    checked = [e for e in ENGINES if r.get(f"{e}_indexed")]
+    yes = [e for e in checked if (r.get(f"{e}_indexed") or "").lower() == "yes"]
+    if not checked:
+        return ""
+    if len(yes) == len(ENGINES):
+        return "both"
+    if yes:
+        return f"{yes[0]} only" if len(checked) == len(ENGINES) else yes[0]
+    return "none"
+
+
 def index_score(r: dict) -> float:
-    v = (r.get("bing_indexed") or "").lower()
-    if v == "yes":
-        return round(clamp(60 + 15 * math.log10((num(r, "bing_results", 0) or 0) + 1)), 1)
-    if v == "no":
+    s = index_summary(r)
+    if not s:
+        return 35.0
+    if s == "none":
         return 0.0
-    return 35.0
+    if (r.get("google_indexed") or "").lower() == "yes":
+        v = 60 + 15 * math.log10((num(r, "google_results", 0) or 0) + 1)
+    else:  # Bing only: the name-query check is a proxy, so it earns a little less
+        v = 50 + 10 * math.log10((num(r, "bing_urls", 0) or 0) + 1)
+    if s == "both":
+        v += 10
+    return round(clamp(v), 1)
 
 
 def buy_score(r: dict) -> float:
@@ -141,11 +201,12 @@ def reject_reasons(r: dict, cfg: dict) -> list[str]:
         out.append("spam-name:" + sp[0])
     if r.get("acquire") == "registered" and not cfg["keep_registered"]:
         out.append("registered")
-    spam = max([v for v in (num(r, "dfs_spam"), num(r, "bl_target_spam")) if v is not None], default=None)
+    spam = target_spam(r)
     if spam is not None and spam > cfg["max_spam"]:
         out.append(f"spam-score:{spam:.0f}")
-    bls = num(r, "bl_backlinks_spam")
-    if bls is not None and bls > cfg["max_bl_spam"]:
+    bls = link_spam(r)
+    # the raw backlink spam score is dominated by link-selling networks once the clean count exists
+    if bls is not None and bls > cfg["max_bl_spam"] and num(r, "bl_clean_rmd") is None:
         out.append(f"backlink-spam:{bls:.0f}")
     a = num(r, "anc_spam_ratio")
     if a is not None and a > cfg["max_anchor_spam"]:
@@ -176,11 +237,21 @@ def warnings(r: dict) -> list[str]:
     peak, last = num(r, "hist_peak_etv"), num(r, "hist_last_etv")
     if peak and peak > 200 and last is not None and last < 0.05 * peak:
         w.append(f"Google traffic fell from {peak:.0f} to {last:.0f} (site went down or penalty)")
+    if (r.get("google_indexed") or "").lower() == "no":
+        w.append("not in Google index")
     if (r.get("bing_indexed") or "").lower() == "no":
-        w.append("not in Bing index")
+        w.append("not in Bing (name query; confirm with site: on bing.com)")
     rd, ips = num(r, "bl_rd"), num(r, "bl_ips")
     if rd and ips is not None and rd >= 20 and ips / rd < 0.5:
         w.append("many referring domains share IPs (PBN footprint)")
+    ls, recent = num(r, "anc_linkspam_ratio", 0) or 0, num(r, "rd_recent_share", 0) or 0
+    if ls > 0.3 or recent > 0.5:
+        w.append(f"link-spam network hit ({ls:.0%} link-selling anchors, {recent:.0%} of top referring domains "
+                 "appeared in the last 90 days): judge by the clean count, expect these links to vanish")
+    bls = link_spam(r)
+    if bls is not None and bls > 30:
+        w.append(f"backlink spam score {bls:.0f} ({'medium' if bls <= 60 else 'high'}"
+                 f"{', inflated by the network above' if ls > 0.3 or recent > 0.5 else ''})")
     return w
 
 
@@ -191,9 +262,11 @@ def score_row(r: dict, niche: dict, cfg: dict) -> dict:
              + 0.15 * parts["s_index"] + 0.10 * parts["s_buy"])
     rej = reject_reasons(r, cfg)
     warn = warnings(r)
-    verified = bool(r.get("wb_checked")) and (r.get("bing_indexed") or "").lower() == "yes"
+    idx = index_summary(r)
+    verified = bool(r.get("wb_checked")) and idx not in ("", "none")
     tier = "X" if rej else "A" if total >= 70 and len(warn) <= 1 and verified else "B" if total >= 55 else "C"
-    return {**parts, "score": round(total, 1), "tier": tier, "reject": "; ".join(rej), "warnings": "; ".join(warn)}
+    return {**parts, "idx_summary": idx, "score": round(total, 1), "tier": tier, "reject": "; ".join(rej),
+            "warnings": "; ".join(warn)}
 
 
 def ranked(table: dict, niche: dict, cfg: dict | None = None, acquirable_only: bool = True) -> list[str]:
@@ -229,8 +302,10 @@ def main(argv=None):
     save_table(run, table)
     rows = sorted(table.values(), key=lambda r: (r["tier"] == "X", -float(r["score"])))
     cols = ["domain", "tier", "score", "acquire", "s_auth", "s_clean", "s_rel", "s_index", "s_buy",
-            "bing_indexed", "bing_results", "bl_rank", "dfs_rank", "bl_rmd", "dfs_rmd", "whois_rmd",
-            "dfs_spam", "wb_first", "wb_last", "wb_niche_hits", "reject", "warnings"]
+            "idx_summary", "google_indexed", "google_results", "bing_indexed", "bing_urls",
+            "bl_rank", "dfs_rank", "bl_clean_rmd", "bl_rmd", "dfs_rmd", "whois_rmd",
+            "dfs_spam", "bl_backlinks_spam", "anc_linkspam_ratio", "wb_first", "wb_last", "wb_niche_hits",
+            "reject", "warnings"]
     with (run / "shortlist.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
         w.writeheader()

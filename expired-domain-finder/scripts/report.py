@@ -20,7 +20,8 @@ ACTION = {
 
 
 def links(d: str, acquire: str) -> list[tuple[str, str]]:
-    out = [("Bing site:", f"https://www.bing.com/search?q=site%3A{d}"),
+    out = [("Google site:", f"https://www.google.com/search?q=site%3A{d}"),
+           ("Bing site:", f"https://www.bing.com/search?q=site%3A{d}"),
            ("Wayback", f"https://web.archive.org/web/*/{d}"),
            ("ICANN lookup", f"https://lookup.icann.org/en/lookup?name={d}")]
     if acquire == "register":
@@ -48,6 +49,12 @@ def rmd(r):
     return max(vals) if vals else None
 
 
+def rmd_str(r) -> str:
+    """'clean/total' once the deep pass removed link-selling networks, else the raw count."""
+    clean = num(r, "bl_clean_rmd")
+    return f"{fmt(clean)}/{fmt(rmd(r))}" if clean is not None else fmt(rmd(r))
+
+
 def spend(run: Path) -> float:
     p = run / "cost_log.csv"
     if not p.exists():
@@ -58,15 +65,21 @@ def spend(run: Path) -> float:
 
 def evidence(r: dict) -> list[tuple[str, str]]:
     ev = []
-    if r.get("bing_indexed"):
-        ev.append(("Bing", f"{'indexed' if r['bing_indexed'] == 'yes' else 'not indexed'}"
-                           f"{' — ' + fmt(r.get('bing_results')) + ' results' if r.get('bing_indexed') == 'yes' else ''}"
-                           f"{'; ' + r['bing_sample'] if r.get('bing_sample') else ''}"))
-    if r.get("google_indexed"):
-        ev.append(("Google", f"{r['google_indexed']} ({fmt(r.get('google_results'))} results)"))
+    if r.get("idx_summary"):
+        ev.append(("Index", r["idx_summary"]))
+    for engine in ("google", "bing"):
+        v = r.get(f"{engine}_indexed")
+        if not v:
+            continue
+        how = "site: query" if (r.get(f"{engine}_method") or "site") == "site" else "name query, a proxy: confirm with site: on bing.com"
+        ev.append((engine.capitalize(), f"{'indexed' if v == 'yes' else 'not indexed'} ({how})"
+                                        f"{' — ' + fmt(r.get(f'{engine}_results')) + ' results' if v == 'yes' else ''}"
+                                        f"{'; ' + r[f'{engine}_sample'] if r.get(f'{engine}_sample') else ''}"))
     rank = r.get("bl_rank") or r.get("dfs_rank")
     if rank or rmd(r) is not None:
         parts = [f"rank {fmt(rank)} / 1000", f"{fmt(rmd(r))} referring main domains"]
+        if r.get("bl_clean_rmd") not in (None, ""):
+            parts.append(f"{fmt(r['bl_clean_rmd'])} clean (link-selling networks removed)")
         if r.get("bl_backlinks"):
             parts += [f"{fmt(r['bl_backlinks'])} backlinks", f"{fmt(r.get('bl_ips'))} IPs", f"{fmt(r.get('rd_edu_gov'))} edu/gov"]
         ev.append(("Backlinks", ", ".join(parts)))
@@ -80,10 +93,15 @@ def evidence(r: dict) -> list[tuple[str, str]]:
             if num(r, key) is not None:
                 parts.append(f"{name} {num(r, key) * 100:.0f}%")
         ev.append(("Spam", ", ".join(parts)))
+    if num(r, "anc_linkspam_ratio") is not None or num(r, "rd_recent_share") is not None:
+        ev.append(("Link-spam network", f"{(num(r, 'anc_linkspam_ratio', 0) or 0) * 100:.0f}% of anchors are link-selling spam, "
+                                        f"{(num(r, 'rd_recent_share', 0) or 0) * 100:.0f}% of the top referring domains appeared in the last 90 days"))
     if r.get("anc_top"):
         ev.append(("Top anchors", r["anc_top"]))
+    if r.get("rd_clean_top"):
+        ev.append(("Top clean referring domains", r["rd_clean_top"]))
     if r.get("rd_top"):
-        ev.append(("Top referring domains", r["rd_top"]))
+        ev.append(("Top referring domains (raw)", r["rd_top"]))
     if r.get("wb_checked"):
         pages = fmt(r.get("wb_pages")) + ("+" if num(r, "wb_pages") == 2000 else "")
         ev.append(("Wayback", f"{r.get('wb_first') or '?'}–{r.get('wb_last') or '?'}, {fmt(r.get('wb_snapshots'))} monthly captures, "
@@ -124,7 +142,7 @@ def main(argv=None):
         "candidates": len(table),
         "buyable (register/backorder/auction)": sum(acq[k] for k in ("register", "backorder", "auction")),
         "backlink-checked": sum(1 for r in table.values() if r.get("bl_deep_checked")),
-        "Bing-checked": sum(1 for r in table.values() if r.get("bing_indexed")),
+        "index-checked": sum(1 for r in table.values() if r.get("google_indexed") or r.get("bing_indexed")),
         "Wayback-checked": sum(1 for r in table.values() if r.get("wb_checked")),
         "passed all filters": len(rows),
         "tier A": sum(1 for r in rows if r["tier"] == "A"),
@@ -137,12 +155,14 @@ def main(argv=None):
           f"{date} · DataForSEO spend ${cost:.2f} · tokens: {', '.join(niche['tokens'][:15])}{' …' if len(niche['tokens']) > 15 else ''}", "",
           "## Funnel", ""]
     md += [f"- {k}: {v:,}" for k, v in funnel.items()]
-    md += ["", "## Shortlist", "", "| # | Domain | Tier | Score | Buy | Bing | Rank | Ref. domains | Spam | Since | Warnings |",
-           "|---|---|---|---|---|---|---|---|---|---|---|"]
+    md += ["", "## Shortlist", "",
+           "Index: both = Google and Bing, google only / bing only, none; Ref. domains: clean/total once deep-checked.", "",
+           "| # | Domain | Tier | Score | Buy | Index | Google | Bing | Rank | Ref. domains | Spam | Since | Warnings |",
+           "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for i, r in enumerate(top, 1):
         md.append(f"| {i} | {r['domain']} | {r['tier']} | {r['score']} | {r.get('acquire') or '–'} | "
-                  f"{r.get('bing_indexed') or '–'} {fmt(r.get('bing_results')) if r.get('bing_indexed') == 'yes' else ''} | "
-                  f"{fmt(r.get('bl_rank') or r.get('dfs_rank'))} | {fmt(rmd(r))} | {fmt(r.get('bl_target_spam') or r.get('dfs_spam'))} | "
+                  f"{r.get('idx_summary') or '–'} | {r.get('google_indexed') or '–'} | {r.get('bing_indexed') or '–'} | "
+                  f"{fmt(r.get('bl_rank') or r.get('dfs_rank'))} | {rmd_str(r)} | {fmt(r.get('bl_target_spam') or r.get('dfs_spam'))} | "
                   f"{r.get('wb_first') or (r.get('rdap_created') or r.get('whois_created') or '')[:4] or '–'} | {r.get('warnings') or ''} |")
     md += ["", "## Evidence", ""]
     for i, r in enumerate(top, 1):
@@ -163,8 +183,9 @@ def main(argv=None):
         trs.append(
             f"<tr><td>{i}</td><td><a href='#d{i}'>{e(r['domain'])}</a></td><td><span class='t t{e(r['tier'])}'>{e(r['tier'])}</span></td>"
             f"<td data-v='{r['score']}'>{r['score']}</td><td>{e(r.get('acquire') or '–')}</td>"
-            f"<td>{e(r.get('bing_indexed') or '–')}</td><td data-v='{num(r, 'bl_rank', num(r, 'dfs_rank', 0))}'>{fmt(r.get('bl_rank') or r.get('dfs_rank'))}</td>"
-            f"<td data-v='{rmd(r) or 0}'>{fmt(rmd(r))}</td><td>{fmt(r.get('bl_target_spam') or r.get('dfs_spam'))}</td>"
+            f"<td>{e(r.get('idx_summary') or '–')}</td><td>{e(r.get('google_indexed') or '–')}</td><td>{e(r.get('bing_indexed') or '–')}</td>"
+            f"<td data-v='{num(r, 'bl_rank', num(r, 'dfs_rank', 0))}'>{fmt(r.get('bl_rank') or r.get('dfs_rank'))}</td>"
+            f"<td data-v='{num(r, 'bl_clean_rmd', rmd(r)) or 0}'>{rmd_str(r)}</td><td>{fmt(r.get('bl_target_spam') or r.get('dfs_spam'))}</td>"
             f"<td>{e(r.get('wb_first') or '–')}</td></tr>")
     cards = []
     for i, r in enumerate(top, 1):
@@ -178,7 +199,7 @@ def main(argv=None):
             f"<div class='bars'>" + "".join(
                 f"<div><span>{lbl}</span><i style='--w:{num(r, key, 0)}%'></i><b>{fmt(r.get(key))}</b></div>"
                 for lbl, key in (("Authority", "s_auth"), ("Clean", "s_clean"), ("Relevance", "s_rel"),
-                                 ("Bing index", "s_index"), ("Buyability", "s_buy"))) +
+                                 ("Index", "s_index"), ("Buyability", "s_buy"))) +
             f"</div><dl>{ev}</dl>{warn}<p class='links'>{lk}</p></section>")
     fun = "".join(f"<div><b>{v:,}</b><span>{e(k)}</span></div>" for k, v in funnel.items())
     rej = "".join(f"<li>{e(k)}: {v:,}</li>" for k, v in rejected.most_common())
@@ -204,7 +225,7 @@ dl{{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;margin:0;font-size
 </style></head><body><main>
 <h1>Expired domains: {e(niche['niche'])}</h1><p class="sub">{date} · DataForSEO spend ${cost:.2f} · {len(niche['tokens'])} niche tokens</p>
 <div class="funnel">{fun}</div>
-<h2>Shortlist</h2><div class="wrap"><table id="tb"><thead><tr><th>#</th><th>Domain</th><th>Tier</th><th>Score</th><th>Buy</th><th>Bing</th><th>Rank</th><th>Ref. domains</th><th>Spam</th><th>Since</th></tr></thead>
+<h2>Shortlist</h2><p class="sub">Index: both = Google and Bing · Ref. domains: clean/total once deep-checked</p><div class="wrap"><table id="tb"><thead><tr><th>#</th><th>Domain</th><th>Tier</th><th>Score</th><th>Buy</th><th>Index</th><th>Google</th><th>Bing</th><th>Rank</th><th>Ref. domains</th><th>Spam</th><th>Since</th></tr></thead>
 <tbody>{''.join(trs)}</tbody></table></div>
 <h2>Evidence</h2>{''.join(cards)}
 <h2>Rejected</h2><ul>{rej}</ul>

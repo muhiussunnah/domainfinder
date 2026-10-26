@@ -1,7 +1,7 @@
 """Run the whole expired-domain hunt for one niche, cheapest checks first.
 
   sources -> availability (free) -> bulk backlinks (cheap) -> deep backlinks on the best N
-  -> Bing index on the best N -> Wayback history on the best N (free) -> score -> report
+  -> Google + Bing index on the best N -> Wayback history on the best N (free) -> score -> report
 
 Example:
   python run_pipeline.py --niche "camping gear" --preset outdoor-camping --max-cost 8
@@ -63,6 +63,9 @@ def main(argv=None):
     ap.add_argument("--traffic", action="store_true", help="add Google traffic history (paid)")
     ap.add_argument("--deep", type=int, default=60)
     ap.add_argument("--index-top", type=int, default=100)
+    ap.add_argument("--engines", default="google,bing", help="index checks: google (site:) and/or bing (name query)")
+    ap.add_argument("--updated-days", type=int, default=30, help="WHOIS expired rows must have been updated this recently")
+    ap.add_argument("--max-rmd", type=int, default=1500, help="WHOIS: skip domains with more referring domains (spam networks)")
     ap.add_argument("--history-top", type=int, default=60)
     ap.add_argument("--report-top", type=int, default=25)
     ap.add_argument("--max-cost", type=float, default=5.0, help="DataForSEO budget for this run in USD")
@@ -89,6 +92,7 @@ def main(argv=None):
     r = ["--run", str(run)]
     if "whois" in sources and paid:
         stage("source:whois", source_whois.main, r + ["--tlds", a.tlds, "--min-rmd", str(a.min_rmd),
+                                                       "--max-rmd", str(a.max_rmd), "--updated-days", str(a.updated_days),
                                                        "--max-results", str(a.whois_max)] + budget)
     if "commoncrawl" in sources:
         cc = r + ["--tlds", a.tlds, "--max-pos", str(a.cc_max_pos)]
@@ -113,7 +117,7 @@ def main(argv=None):
             en.append("--traffic")
         stage("backlinks", enrich_backlinks.main, en)
         stage("score", score.main, r + ["--min-rmd", str(a.min_rmd)])
-        stage("bing index", check_index.main, r + ["--top", str(a.index_top)] + budget)
+        stage("index", check_index.main, r + ["--top", str(a.index_top), "--engines", a.engines] + budget)
     stage("score", score.main, r + ["--min-rmd", str(a.min_rmd)])
     stage("wayback", check_history.main, r + ["--top", str(a.history_top)])
     stage("score", score.main, r + ["--min-rmd", str(a.min_rmd)])
