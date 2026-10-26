@@ -1,0 +1,13 @@
+# Travel gear and luggage.
+travel
+traveler
+traveller
+luggage
+suitcase
+backpack
+packing
+carryon
+nomad
+roadtrip
+passport
+-timetravel

@@ -1,0 +1,34 @@
+# Substrings that reject a domain NAME outright. Keep these unambiguous:
+# no short words that hide inside normal words (sex/essex, bet/alphabet, loan/balloon).
+casino
+poker
+gambl
+betting
+sportsbook
+viagra
+cialis
+pharma
+porn
+xxx
+escort
+hentai
+payday
+replica
+sbobet
+togel
+gacor
+bokep
+judionline
+camgirl
+milf
+crypto
+bitcoin
+forex
+cbd
+kratom
+vape
+essaywrit
+buyfollowers
+apkmod
+torrent
+warez

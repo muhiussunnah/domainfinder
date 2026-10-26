@@ -1,0 +1,20 @@
+# Musical instruments and gear.
+guitar
+guitars
+guitarist
+piano
+pianist
+drum
+drums
+drummer
+ukulele
+violin
+cello
+synth
+pedal
+pedals
+amplifier
+musician
+recording
+studio
+songwriter

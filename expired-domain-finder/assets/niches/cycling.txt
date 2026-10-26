@@ -1,0 +1,15 @@
+# Bikes and cycling gear.
+bike
+bikes
+bicycle
+bicycles
+cycling
+cyclist
+ebike
+ebikes
+biking
+mtb
+velo
+bikepacking
+-motorbike
+-biker

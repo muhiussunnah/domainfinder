@@ -1,0 +1,23 @@
+# Power tools, DIY and workshop.
+tools
+toolbox
+drill
+drills
+woodworking
+woodwork
+workshop
+diy
+handyman
+carpentry
+carpenter
+plumbing
+wrench
+welding
+welder
+sander
+cordless
+powertool
+garage
+lathe
+jigsaw
+bandsaw

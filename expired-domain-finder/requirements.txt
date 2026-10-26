@@ -1,0 +1,2 @@
+# Optional: splits domain names into words for accurate niche matching.
+wordninja>=2.0

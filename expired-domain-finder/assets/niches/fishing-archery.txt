@@ -1,0 +1,18 @@
+# Fishing and archery (firearms are restricted on Amazon, so not included).
+fishing
+angler
+anglers
+angling
+fisherman
+lure
+lures
+tackle
+flyfishing
+baitcaster
+archery
+bowhunting
+crossbow
+decoy
+kayakfishing
+-phishing
+-embassy

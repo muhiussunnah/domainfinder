@@ -1,0 +1,12 @@
+# Golf gear.
+golf
+golfer
+golfers
+golfing
+putter
+putting
+fairway
+caddie
+golfball
+teetime
+-golfo

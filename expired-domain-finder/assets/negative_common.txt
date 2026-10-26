@@ -1,0 +1,6 @@
+# Substrings that disqualify a name in every niche (tokens often hide in these).
+education
+location
+category
+catalog
+vacation

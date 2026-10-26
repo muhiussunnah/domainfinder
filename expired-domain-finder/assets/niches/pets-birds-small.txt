@@ -1,0 +1,18 @@
+# Birds and small pets.
+parrot
+parrots
+birdcage
+budgie
+cockatiel
+hamster
+gerbil
+guinea
+rabbit
+bunny
+ferret
+reptile
+reptiles
+gecko
+tortoise
+chinchilla
+-bunnyhop

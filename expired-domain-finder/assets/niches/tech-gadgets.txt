@@ -1,0 +1,23 @@
+# Consumer electronics and accessories.
+gadget
+gadgets
+headphone
+headphones
+earbuds
+speaker
+speakers
+charger
+keyboard
+laptop
+laptops
+webcam
+smartwatch
+smarthome
+drone
+drones
+camera
+cameras
+gamer
+tablet
+projector
+-techno

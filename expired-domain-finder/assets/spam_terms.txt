@@ -1,0 +1,72 @@
+# Phrases that mark spam when found in page text, titles or backlink anchors.
+# Matched as whole words, case-insensitive. Keep out words with innocent uses
+# ("slots", "nude" lipstick, "the sex of your puppy", "dating back to", "pills" for pets).
+casino
+casinos
+online casino
+crypto casino
+poker
+slot gacor
+gacor
+sbobet
+togel
+judi
+judi online
+situs
+bandar
+betting
+sportsbook
+bookmaker
+gambling
+roulette
+baccarat
+viagra
+cialis
+levitra
+kamagra
+online pharmacy
+tramadol
+xanax
+phentermine
+oxycodone
+porn
+porno
+xxx
+sex cam
+sex videos
+escorts
+nudes
+hentai
+camgirl
+milf
+bokep
+jav
+payday loan
+payday loans
+cash advance
+bad credit loans
+replica watches
+replica bags
+cheap jerseys
+louis vuitton outlet
+michael kors outlet
+ugg outlet
+cheap ray ban
+essay writing service
+write my essay
+buy essay
+binary options
+forex signals
+buy backlinks
+buy followers
+weight loss pills
+keto pills
+diet pills
+penis
+enlargement
+mail order bride
+hookup
+mod apk
+keygen
+torrent
+warez
