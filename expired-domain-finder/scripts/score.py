@@ -71,12 +71,14 @@ def authority(r: dict) -> float:
     pos = num(r, "cc_hc_pos")
     etv = num(r, "hist_peak_etv", num(r, "whois_etv"))
     age = age_years(r)
+    wiki = num(r, "wiki_links", num(r, "wiki_pages"))  # Wikipedia articles linking to it (free, exact)
     v = wavg([
-        (clamp(rank / 4) if rank is not None else None, 0.35),
-        (clamp(33 * math.log10(rmd + 1)) if rmd is not None else None, 0.30),
-        (clamp(100 - 25 * math.log10(max(pos, 1) / 1e5)) if pos else None, 0.15),
-        (clamp(25 * math.log10(etv + 1)) if etv is not None else None, 0.10),
-        (clamp(age * 6) if age is not None else None, 0.10),
+        (clamp(rank / 4) if rank is not None else None, 0.30),
+        (clamp(33 * math.log10(rmd + 1)) if rmd is not None else None, 0.25),
+        (clamp(45 * math.log10(wiki + 1)) if wiki is not None else None, 0.20),
+        (clamp(100 - 25 * math.log10(max(pos, 1) / 1e5)) if pos else None, 0.10),
+        (clamp(25 * math.log10(etv + 1)) if etv is not None else None, 0.08),
+        (clamp(age * 6) if age is not None else None, 0.07),
     ])
     return round(v or 0, 1)
 
@@ -303,7 +305,7 @@ def main(argv=None):
     rows = sorted(table.values(), key=lambda r: (r["tier"] == "X", -float(r["score"])))
     cols = ["domain", "tier", "score", "acquire", "s_auth", "s_clean", "s_rel", "s_index", "s_buy",
             "idx_summary", "google_indexed", "google_results", "bing_indexed", "bing_urls",
-            "bl_rank", "dfs_rank", "bl_clean_rmd", "bl_rmd", "dfs_rmd", "whois_rmd",
+            "wiki_links", "wiki_link_titles", "bl_rank", "dfs_rank", "bl_clean_rmd", "bl_rmd", "dfs_rmd", "whois_rmd",
             "dfs_spam", "bl_backlinks_spam", "anc_linkspam_ratio", "wb_first", "wb_last", "wb_niche_hits",
             "reject", "warnings"]
     with (run / "shortlist.csv").open("w", newline="", encoding="utf-8") as fh:

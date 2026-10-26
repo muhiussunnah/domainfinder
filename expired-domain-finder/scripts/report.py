@@ -93,6 +93,12 @@ def evidence(r: dict) -> list[tuple[str, str]]:
             if num(r, key) is not None:
                 parts.append(f"{name} {num(r, key) * 100:.0f}%")
         ev.append(("Spam", ", ".join(parts)))
+    wl = num(r, "wiki_links")
+    if wl is not None or r.get("wiki_pages"):
+        n = int(wl) if wl is not None else int(num(r, "wiki_pages", 0) or 0)
+        titles = r.get("wiki_link_titles") or r.get("wiki_titles") or ""
+        tag = " (link tagged dead by editors)" if (r.get("wiki_dead_tagged") or "") in ("1", "True") else ""
+        ev.append(("Wikipedia", f"{n} article(s) link to it{tag}: {titles}" if n else "no article links to it"))
     if num(r, "anc_linkspam_ratio") is not None or num(r, "rd_recent_share") is not None:
         ev.append(("Link-spam network", f"{(num(r, 'anc_linkspam_ratio', 0) or 0) * 100:.0f}% of anchors are link-selling spam, "
                                         f"{(num(r, 'rd_recent_share', 0) or 0) * 100:.0f}% of the top referring domains appeared in the last 90 days"))
@@ -157,11 +163,12 @@ def main(argv=None):
     md += [f"- {k}: {v:,}" for k, v in funnel.items()]
     md += ["", "## Shortlist", "",
            "Index: both = Google and Bing, google only / bing only, none; Ref. domains: clean/total once deep-checked.", "",
-           "| # | Domain | Tier | Score | Buy | Index | Google | Bing | Rank | Ref. domains | Spam | Since | Warnings |",
-           "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+           "| # | Domain | Tier | Score | Buy | Index | Google | Bing | Wiki | Rank | Ref. domains | Spam | Since | Warnings |",
+           "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for i, r in enumerate(top, 1):
         md.append(f"| {i} | {r['domain']} | {r['tier']} | {r['score']} | {r.get('acquire') or '–'} | "
                   f"{r.get('idx_summary') or '–'} | {r.get('google_indexed') or '–'} | {r.get('bing_indexed') or '–'} | "
+                  f"{fmt(r.get('wiki_links') if r.get('wiki_links') not in (None, '') else r.get('wiki_pages'))} | "
                   f"{fmt(r.get('bl_rank') or r.get('dfs_rank'))} | {rmd_str(r)} | {fmt(r.get('bl_target_spam') or r.get('dfs_spam'))} | "
                   f"{r.get('wb_first') or (r.get('rdap_created') or r.get('whois_created') or '')[:4] or '–'} | {r.get('warnings') or ''} |")
     md += ["", "## Evidence", ""]
@@ -184,6 +191,7 @@ def main(argv=None):
             f"<tr><td>{i}</td><td><a href='#d{i}'>{e(r['domain'])}</a></td><td><span class='t t{e(r['tier'])}'>{e(r['tier'])}</span></td>"
             f"<td data-v='{r['score']}'>{r['score']}</td><td>{e(r.get('acquire') or '–')}</td>"
             f"<td>{e(r.get('idx_summary') or '–')}</td><td>{e(r.get('google_indexed') or '–')}</td><td>{e(r.get('bing_indexed') or '–')}</td>"
+            f"<td data-v='{num(r, 'wiki_links', num(r, 'wiki_pages', 0)) or 0}'>{fmt(r.get('wiki_links') if r.get('wiki_links') not in (None, '') else r.get('wiki_pages'))}</td>"
             f"<td data-v='{num(r, 'bl_rank', num(r, 'dfs_rank', 0))}'>{fmt(r.get('bl_rank') or r.get('dfs_rank'))}</td>"
             f"<td data-v='{num(r, 'bl_clean_rmd', rmd(r)) or 0}'>{rmd_str(r)}</td><td>{fmt(r.get('bl_target_spam') or r.get('dfs_spam'))}</td>"
             f"<td>{e(r.get('wb_first') or '–')}</td></tr>")
@@ -225,7 +233,7 @@ dl{{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;margin:0;font-size
 </style></head><body><main>
 <h1>Expired domains: {e(niche['niche'])}</h1><p class="sub">{date} · DataForSEO spend ${cost:.2f} · {len(niche['tokens'])} niche tokens</p>
 <div class="funnel">{fun}</div>
-<h2>Shortlist</h2><p class="sub">Index: both = Google and Bing · Ref. domains: clean/total once deep-checked</p><div class="wrap"><table id="tb"><thead><tr><th>#</th><th>Domain</th><th>Tier</th><th>Score</th><th>Buy</th><th>Index</th><th>Google</th><th>Bing</th><th>Rank</th><th>Ref. domains</th><th>Spam</th><th>Since</th></tr></thead>
+<h2>Shortlist</h2><p class="sub">Index: both = Google and Bing · Ref. domains: clean/total once deep-checked</p><div class="wrap"><table id="tb"><thead><tr><th>#</th><th>Domain</th><th>Tier</th><th>Score</th><th>Buy</th><th>Index</th><th>Google</th><th>Bing</th><th>Wiki</th><th>Rank</th><th>Ref. domains</th><th>Spam</th><th>Since</th></tr></thead>
 <tbody>{''.join(trs)}</tbody></table></div>
 <h2>Evidence</h2>{''.join(cards)}
 <h2>Rejected</h2><ul>{rej}</ul>
