@@ -5,6 +5,24 @@ to it after every hunt (see the Rules in SKILL.md). Newest first. Tags: **[FACT]
 docs, measured data or verified in a run · **[PRACTICE]** consistent practitioner advice ·
 **[FOLKLORE]** unverified or contradicted.
 
+## 2026-10-28 — what the $0 hunt finally delivered
+
+Verified (RDAP + registrar search + Wayback + Wikipedia exturlusage + Ubersuggest DA):
+
+| Domain | Buy | DA | Ref. domains | Wikipedia | History |
+|---|---|---|---|---|---|
+| thegolfgazette.com | register | 11 | 57 | 2 articles | 2003–2025 golf news site, 1,184 archived pages, one era |
+| archery-den.com | register | 24 | 395 | 2 articles | 2016–2023 archery site; Bing-indexed (user check), not Google |
+| akronist.com | backorder, drop ~2026-11-05 | 32 | 379 | 2 articles | 2010–2024 Akron local news, 2,000+ pages |
+| jewishbusinessnews.com | backorder, drop ~2026-11-07 | 61 | 9,124 | 9 articles | 2010–2025 news site; catchers will contest it |
+| emborahome.com | backorder, drop ~2026-11-15 | 16 | 464 | 1 article | 2021–2025 home Q&A site |
+| theacousticguitarist.com | backorder, drop ~2026-10-30 | 25 | 1,779 | 1 article | 2020–2026 guitar site (user passed: niche) |
+| parrotcichlids.com | backorder, drop ~2026-11-10 | 4 | 111 | 1 article | 2009–2025 aquarium site; no authority |
+
+Rejected after the deep look: gatewaygrounds.com (payday-loan era 2019–21, Indonesian takeover 2026), nutmegwoodturners.com and bullysticksinfo.com (Chinese lottery eras), historyofquilts.com (Chinese gambling now), fitnessreaper.com (registered until 2027, clientHold), postimg.org and tackletog.com (registry/aftermarket "Taken"). Common Crawl hand-register names with long clean histories (homedecorreport.com, myhouseholdcleaning.com, geekygolf.com, pensfatales.com) sit at DA 6–18 and are unverified in the index.
+
+Lessons: Wayback CDX silently returns empty bodies under load (thegolfgazette.com showed "no history" twice, then 51 captures): retry a "0 captures" verdict later before trusting it. Ubersuggest's MCP blocks after ~15 calls in a few minutes; 5 per batch with pauses. Niche economics for the aquarium pick: Amazon pet products pay 3 %, so $2k/month needs ~$67k of referred sales or display ads on 50k+ sessions — say this before anyone buys for income.
+
 ## 2026-10-26 — first hunt (all 23 presets, $0.90 of DataForSEO credit) and research pass
 
 ### What the hunt showed
